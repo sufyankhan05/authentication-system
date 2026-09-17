@@ -9,6 +9,7 @@ const errorMiddleware = require("./middleware/errorMiddleware");
 const app = express();
 connectDB();
 
+
 // ==================================================
 // MIDDLEWARE
 // ==================================================
@@ -50,6 +51,7 @@ app.get("/", (req, res) => {
     message: "Authentication API is running",
   });
 });
+
 
 // ==================================================
 // 404

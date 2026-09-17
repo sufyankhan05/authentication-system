@@ -7,9 +7,9 @@ const mongoose = require("mongoose");
 const User = require("../models/user");
 const Session = require("../models/session");
 const env = require("../config/env");
-const logger = require("../utils/logger");
+// const logger = require("../utils/logger");
 const authMiddleware = require("../middleware/authMiddleware");
-
+const AppError = require("../utils/AppError");
 const sendEmail = require("../utils/sendEmail");
 const validatePassword = require("../utils/validatePassword");
 const validateEmail = require("../utils/validateEmail");
@@ -52,6 +52,8 @@ const loginLimiter = rateLimit({
     success: false,
     message: "Too many login attempts. Please try again later.",
   },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Protect OTP endpoints by IP
@@ -64,6 +66,8 @@ const otpLimiter = rateLimit({
     success: false,
     message: "Too many OTP requests. Please try again later.",
   },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // ============================================================
@@ -123,7 +127,7 @@ const generateRefreshToken = (user, sessionId) => {
 
 router.post(
   "/register",
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const { name, email, password } = req.body;
 
     // ------------------------------------------------------
@@ -182,10 +186,7 @@ router.post(
     });
 
     if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: "Email already registered",
-      });
+      throw new AppError("Email already registered", 409);
     }
 
     // ------------------------------------------------------
@@ -278,7 +279,7 @@ router.post(
 router.post(
   "/verify-email",
   otpLimiter,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const { email, otp } = req.body;
 
     // ------------------------------------------------------
@@ -445,7 +446,7 @@ router.post(
 router.post(
   "/resend-verification-otp",
   otpLimiter,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const { email } = req.body;
 
     // ------------------------------------------------------
@@ -576,7 +577,7 @@ router.post(
 router.post(
   "/login",
   loginLimiter,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
     // ------------------------------------------------------
@@ -777,7 +778,7 @@ router.post(
 
 router.post(
   "/refresh",
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
@@ -994,7 +995,7 @@ router.post(
 router.post(
   "/logout",
   authMiddleware,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
 
     if (refreshToken) {
@@ -1045,14 +1046,11 @@ router.post(
 router.post(
   "/logout-all",
   authMiddleware,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id);
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      throw new AppError("User not found", 404);
     }
 
     // ------------------------------------------------------
@@ -1114,7 +1112,7 @@ router.post(
 router.get(
   "/sessions",
   authMiddleware,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const sessions = await Session.find({
       userId: req.user._id,
 
@@ -1154,7 +1152,7 @@ router.get(
 router.delete(
   "/sessions/:sessionId",
   authMiddleware,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const { sessionId } = req.params;
 
     // ------------------------------------------------------
@@ -1171,10 +1169,7 @@ router.delete(
     const session = await Session.findById(sessionId);
 
     if (!session) {
-      return res.status(404).json({
-        success: false,
-        message: "Session not found",
-      });
+      throw new AppError("Session not found", 404);
     }
 
     // ------------------------------------------------------
@@ -1208,7 +1203,7 @@ router.delete(
 router.post(
   "/forgot-password",
   otpLimiter,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const { email } = req.body;
 
     // ------------------------------------------------------
@@ -1351,7 +1346,7 @@ router.post(
 router.post(
   "/verify-password-reset-otp",
   otpLimiter,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const { email, otp } = req.body;
 
     // ------------------------------------------------------
@@ -1512,7 +1507,7 @@ router.post(
 
 router.post(
   "/reset-password",
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const { email, resetToken, newPassword } = req.body;
 
     // ------------------------------------------------------
@@ -1702,7 +1697,7 @@ router.post(
 router.put(
   "/change-password",
   authMiddleware,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
     // ------------------------------------------------------
@@ -1736,10 +1731,7 @@ router.put(
     const user = await User.findById(req.user._id).select("+password");
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      throw new AppError("User not found", 404);
     }
 
     // ------------------------------------------------------
@@ -1837,14 +1829,11 @@ router.put(
 router.get(
   "/me",
   authMiddleware,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id);
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      throw new AppError("User not found", 404);
     }
 
     return res.status(200).json({
@@ -1868,7 +1857,7 @@ router.get(
 router.get(
   "/:id",
   authMiddleware,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     // Validate MongoDB ID
@@ -1882,10 +1871,7 @@ router.get(
     const user = await User.findById(id);
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      throw new AppError("User not found", 404);
     }
 
     return res.status(200).json({
