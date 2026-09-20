@@ -8,8 +8,8 @@ const connectDB = require("./config/db");
 const errorMiddleware = require("./middleware/errorMiddleware");
 const app = express();
 connectDB();
-
-
+const asyncHandler = require("./utils/asyncHandler");
+const AppError = require("./utils/AppError");
 // ==================================================
 // MIDDLEWARE
 // ==================================================
@@ -52,7 +52,17 @@ app.get("/", (req, res) => {
   });
 });
 
+//test
+app.get("/test-async-error",asyncHandler(async (req, res)=>{
+  throw new Error("Async error is working")
+}))
 
+app.get(
+  "/test-async-app-error",
+  asyncHandler(async (req, res) => {
+    throw new AppError("Async AppError is working", 422);
+  }),
+);
 // ==================================================
 // 404
 // ==================================================

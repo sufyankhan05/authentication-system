@@ -31,6 +31,7 @@ const validateString = (value, fieldName, minLength = 1, maxLength = 100) => {
 
   return {
     valid: true,
+    message: `${fieldName} is valid`,
   };
 };
 

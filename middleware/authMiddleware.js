@@ -80,13 +80,10 @@ const protect = async (req, res, next) => {
 
     next();
   } catch (error) {
-    logger.error(
-      "Authentication Error",
-      {
-        name: error.name,
-        message: error.message,
-      },
-    );
+    logger.error("Authentication Error", {
+      name: error.name,
+      message: error.message,
+    });
 
     if (error.name === "TokenExpiredError") {
       return res.status(401).json({

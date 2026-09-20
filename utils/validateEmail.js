@@ -1,5 +1,5 @@
 const validateEmail = (email) => {
-  if (!email) {
+  if (email === undefined || email === null) {
     return {
       valid: false,
       message: "Email is required",
@@ -13,9 +13,18 @@ const validateEmail = (email) => {
     };
   }
 
+  const cleanEmail = email.trim();
+
+  if (cleanEmail.length === 0) {
+    return {
+      valid: false,
+      message: "Email is required",
+    };
+  }
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (!emailRegex.test(email)) {
+  if (!emailRegex.test(cleanEmail)) {
     return {
       valid: false,
       message: "Invalid email format",
@@ -24,6 +33,7 @@ const validateEmail = (email) => {
 
   return {
     valid: true,
+    message: "Valid email",
   };
 };
 

@@ -7,7 +7,7 @@ const protect = require("../middleware/authMiddleware");
 const authorize = require("../middleware/roleMiddleware");
 
 const authorizePermission = require("../middleware/permissionMiddleware");
-
+const validateObjectId = require("../utils/validateObjectId");
 const {
   checkOwnership,
   checkOwnershipOrAdmin,
@@ -47,6 +47,16 @@ router.get(
 router.get(
   "/:id",
   protect,
+  (req, res, next) => {
+    if (!validateObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    next();
+  },
   checkOwnershipOrAdmin,
   asyncHandler(async (req, res, next) => {
     const user = await User.findById(req.params.id);
@@ -76,6 +86,16 @@ router.get(
 router.put(
   "/:id",
   protect,
+  (req, res, next) => {
+    if (!validateObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    next();
+  },
   checkOwnershipOrAdmin,
   asyncHandler(async (req, res, next) => {
     const { name, email } = req.body;
@@ -118,6 +138,16 @@ router.put(
 router.delete(
   "/:id",
   protect,
+  (req, res, next) => {
+    if (!validateObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    next();
+  },
   authorize("admin"),
   asyncHandler(async (req, res, next) => {
     const user = await User.findByIdAndDelete(req.params.id);

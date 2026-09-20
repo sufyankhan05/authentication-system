@@ -1152,6 +1152,16 @@ router.get(
 router.delete(
   "/sessions/:sessionId",
   authMiddleware,
+  (req, res, next) => {
+    if (!validateObjectId(req.params.sessionId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid session ID",
+      });
+    }
+
+    next();
+  },
   asyncHandler(async (req, res) => {
     const { sessionId } = req.params;
 
