@@ -15,6 +15,8 @@ const {
 
 const AppError = require("../utils/AppError");
 const asyncHandler = require("../utils/asyncHandler");
+const validateString = require("../utils/validateString");
+const validateEmail = require("../utils/validateEmail");
 const router = express.Router();
 
 // ==================================================
@@ -86,6 +88,7 @@ router.get(
 router.put(
   "/:id",
   protect,
+  // ObjectId validation
   (req, res, next) => {
     if (!validateObjectId(req.params.id)) {
       return res.status(400).json({
@@ -99,20 +102,52 @@ router.put(
   checkOwnershipOrAdmin,
   asyncHandler(async (req, res, next) => {
     const { name, email } = req.body;
-    validateString();
-    validateEmail();
+    //Validate name only if provided
+    if (name !== undefined) {
+      const nameValidation = validateString(name, "Name", 2, 50);
+      if (!nameValidation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: nameValidation.message,
+        });
+      }
+    }
+    // Validate email only if provided
+    if (email !== undefined) {
+      const emailValidation = validateEmail(email);
+      if (!emailValidation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: emailValidation.message,
+        });
+      }
+    }
+    // validateString();
+    // validateEmail();
     const user = await User.findById(req.params.id);
 
     if (!user) {
       return next(new AppError("User not found", 404));
     }
 
-    if (name) {
+    if (name !== undefined) {
       user.name = name.trim();
     }
 
-    if (email) {
-      user.email = email.toLowerCase().trim();
+    if (email !== undefined) {
+      const cleanEmail = email.trim().toLowerCase();
+      const existingUser = await User.findOne({
+        email: cleanEmail,
+        _id: { $ne: user._id },
+      });
+      if (existingUser) {
+        return res.status(409).json({
+          success: false,
+          message: "Unable to use this email",
+        });
+      }
+
+      user.email = cleanEmail;
     }
 
     await user.save();
