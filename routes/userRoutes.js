@@ -102,6 +102,9 @@ router.put(
   checkOwnershipOrAdmin,
   asyncHandler(async (req, res, next) => {
     const { name, email } = req.body;
+    console.log("Request body: ",req.body);
+    console.log("Received Email: ",email);
+
     //Validate name only if provided
     if (name !== undefined) {
       const nameValidation = validateString(name, "Name", 2, 50);
@@ -146,7 +149,7 @@ router.put(
           message: "Unable to use this email",
         });
       }
-
+      user.pendingEmail = cleanEmail;
       user.email = cleanEmail;
     }
 

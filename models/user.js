@@ -59,6 +59,24 @@ const userSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
+    //pending and change email'
+
+    pendingEmail: {
+      type: String,
+      default: null,
+      lowercase: true,
+      trim: true,
+    },
+    emailChangeOtpHash: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    emailChangeOtpExpiresAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
 
     // ==================================================
     // PASSWORD RESET OTP
