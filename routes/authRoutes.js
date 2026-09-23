@@ -744,7 +744,7 @@ router.post(
 
       sameSite: "strict",
 
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: env.REFRESH_TOKEN_MAX_AGE_MS,
     });
 
     // ------------------------------------------------------
@@ -1023,10 +1023,12 @@ router.post(
     }
 
     res.clearCookie("refreshToken", {
+      //JavaScript can't read cookie
       httpOnly: true,
-
+      //HTTPS only in production
       secure: env.NODE_ENV === "production",
 
+      //Controls cross-site cookie sending
       sameSite: "strict",
     });
 
