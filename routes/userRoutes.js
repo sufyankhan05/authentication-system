@@ -186,7 +186,7 @@ router.delete(
 
     next();
   },
-  authorize("admin"),
+  authorize("admin", "user"),
   asyncHandler(async (req, res, next) => {
     const user = await User.findByIdAndDelete(req.params.id);
 
