@@ -102,8 +102,6 @@ router.put(
   checkOwnershipOrAdmin,
   asyncHandler(async (req, res, next) => {
     const { name, email } = req.body;
-    console.log("Request body: ",req.body);
-    console.log("Received Email: ",email);
 
     //Validate name only if provided
     if (name !== undefined) {
