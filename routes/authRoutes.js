@@ -7,7 +7,6 @@ const mongoose = require("mongoose");
 const User = require("../models/user");
 const Session = require("../models/session");
 const env = require("../config/env");
-// const logger = require("../utils/logger");
 const authMiddleware = require("../middleware/authMiddleware");
 const AppError = require("../utils/AppError");
 const sendEmail = require("../utils/sendEmail");
@@ -47,7 +46,6 @@ const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
 
   max: 10,
-
   message: {
     success: false,
     message: "Too many login attempts. Please try again later.",
