@@ -568,6 +568,197 @@ router.post(
 );
 
 // ============================================================
+// REQUEST EMAIL CHANGE
+// POST /api/auth/request-email-change
+// ============================================================
+
+router.post(
+  "/request-email-change",
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const { newEmail } = req.body;
+
+    //validate email
+    const emailValidation = validateEmail(newEmail);
+
+    if (!emailValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: emailValidation.message,
+      });
+    }
+
+    const cleanEmail = newEmail.trim().toLowerCase();
+
+    //check if same as current email
+    if (cleanEmail === req.user.email) {
+      return res.status(400).json({
+        success: false,
+        message: "New email must be different from current email",
+      });
+    }
+
+    //check whether email already belongs to another account
+    const existingUser = await User.findOne({
+      email: cleanEmail,
+    });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Unable to use this email address",
+      });
+    }
+
+    //generate OTP
+    const otp = crypto.randomInt(100000, 1000000).toString();
+
+    //Hash OTP
+    const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+
+    // Save OTP
+    const user = await User.findById(req.user._id);
+
+    user.pendingEmail = cleanEmail;
+
+    user.emailChangeOtpHash = otpHash;
+
+    user.emailChangeOtpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    user.emailChangeOtpLastSentAt = new Date();
+
+
+    await user.save();
+
+    // Send OTP  to New email
+    await sendEmail(
+      cleanEmail,
+      "Verify your new email address",
+      `Your email change OTP is: ${otp}. It expires in 10 minutes.`,
+    );
+    return res.status(200).json({
+      success: true,
+      message: "verification OTP sent to the new email address",
+    });
+  })
+);
+
+// ============================================================
+// VERIFY THE EMAIL CHANGE OTP
+// POST /api/auth/verify-email-change
+// ============================================================
+
+router.post(
+  "/verify-email-change",
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const { otp } = req.body;
+
+    if (!otp) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP is required",
+      });
+    }
+
+    const user = await User.findById(req.user._id).select(
+      "+emailChangeOtpHash +emailChangeOtpExpiresAt +pendingEmail",
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (
+      !user.pendingEmail ||
+      !user.emailChangeOtpHash
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "No email change request found",
+      });
+    }
+
+    // Check expiry
+    if (
+      !user.emailChangeOtpExpiresAt ||
+      user.emailChangeOtpExpiresAt < new Date()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired",
+      });
+    }
+
+    // Hash submitted OTP
+    const otpHash = crypto
+      .createHash("sha256")
+      .update(otp)
+      .digest("hex");
+
+    // Compare
+    if (otpHash !== user.emailChangeOtpHash) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    // Final duplicate check
+    const existingUser = await User.findOne({
+      email: user.pendingEmail,
+      _id: { $ne: user._id },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Unable to use this email address",
+      });
+    }
+
+    // Change email
+    user.email = user.pendingEmail;
+
+    // Clear temporary email-change data
+    user.pendingEmail = null;
+    user.emailChangeOtpHash = null;
+    user.emailChangeOtpExpiresAt = null;
+    user.emailChangeOtpLastSentAt = null;
+
+    // Invalidate existing authentication sessions
+    user.tokenVersion += 1;
+
+    await user.save();
+
+    await Session.updateMany(
+      {
+        userId: user._id,
+        revokedAt: null,
+      },
+      {
+        $set: {
+          revokedAt: new Date(),
+        },
+      },
+    );
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Email changed successfully. Please login again.",
+    });
+  }),
+);
+
+// ============================================================
 // LOGIN
 // POST /api/auth/login
 // ============================================================

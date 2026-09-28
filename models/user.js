@@ -59,13 +59,16 @@ const userSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
-    //pending and change email'
+    // ==================================================
+    // CHANGE EMAIL VERIFICATION
+    // ==================================================
 
     pendingEmail: {
       type: String,
       default: null,
       lowercase: true,
       trim: true,
+      select: false,
     },
     emailChangeOtpHash: {
       type: String,
@@ -73,6 +76,11 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
     emailChangeOtpExpiresAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+    emailChangeOtpLastSentAt: {
       type: Date,
       default: null,
       select: false,
