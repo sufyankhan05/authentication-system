@@ -578,7 +578,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const { newEmail } = req.body;
 
-    //validate email
+    // Validate email
     const emailValidation = validateEmail(newEmail);
 
     if (!emailValidation.valid) {
@@ -590,7 +590,7 @@ router.post(
 
     const cleanEmail = newEmail.trim().toLowerCase();
 
-    //check if same as current email
+    // Check if same as current email
     if (cleanEmail === req.user.email) {
       return res.status(400).json({
         success: false,
@@ -598,10 +598,11 @@ router.post(
       });
     }
 
-    //check whether email already belongs to another account
+    // Check whether email already belongs to another account
     const existingUser = await User.findOne({
       email: cleanEmail,
     });
+
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -609,10 +610,10 @@ router.post(
       });
     }
 
-    //generate OTP
+    // Generate OTP
     const otp = crypto.randomInt(100000, 1000000).toString();
 
-    //Hash OTP
+    // Hash OTP
     const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
 
     // Save OTP
@@ -626,20 +627,23 @@ router.post(
 
     user.emailChangeOtpLastSentAt = new Date();
 
-
     await user.save();
 
-    // Send OTP  to New email
-    await sendEmail(
-      cleanEmail,
-      "Verify your new email address",
-      `Your email change OTP is: ${otp}. It expires in 10 minutes.`,
-    );
+    // Send OTP to NEW email
+    await sendEmail({
+      to: cleanEmail,
+      subject: "Verify your new email address",
+      html: `<h2>Verify your new email address</h2>
+      <p>Your otp is:</p>
+      <h1>${otp}</h1>
+      <p>It expires in 10 minutes.</p>`,
+    });
+
     return res.status(200).json({
       success: true,
-      message: "verification OTP sent to the new email address",
+      message: "Verification OTP sent to the new email address",
     });
-  })
+  }),
 );
 
 // ============================================================
@@ -671,10 +675,7 @@ router.post(
       });
     }
 
-    if (
-      !user.pendingEmail ||
-      !user.emailChangeOtpHash
-    ) {
+    if (!user.pendingEmail || !user.emailChangeOtpHash) {
       return res.status(400).json({
         success: false,
         message: "No email change request found",
@@ -693,10 +694,7 @@ router.post(
     }
 
     // Hash submitted OTP
-    const otpHash = crypto
-      .createHash("sha256")
-      .update(otp)
-      .digest("hex");
+    const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
 
     // Compare
     if (otpHash !== user.emailChangeOtpHash) {
