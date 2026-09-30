@@ -610,7 +610,7 @@ router.post(
       });
     }
 
-    // Generate OTP
+    // Generate OTP.
     const otp = crypto.randomInt(100000, 1000000).toString();
 
     // Hash OTP
