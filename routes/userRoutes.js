@@ -29,14 +29,74 @@ router.get(
   protect,
   authorize("admin"),
   asyncHandler(async (req, res) => {
-    const users = await User.find().select(
-      "-password " + "-refreshTokenHash " + "-refreshTokenExpiresAt",
+    // -------------------------
+    // PAGINATION
+    // -------------------------
+
+    const page = Math.max(
+      Number.parseInt(req.query.page, 10) || 1,
+      1,
     );
 
-    res.json({
-      success: true,
+    const limit = Math.min(
+      Math.max(
+        Number.parseInt(req.query.limit, 10) || 10,
+        1,
+      ),
+      100,
+    );
 
-      users,
+    const skip = (page - 1) * limit;
+
+    // -------------------------
+    // FILTERING
+    // -------------------------
+
+    const filter = {};
+
+    if (req.query.role) {
+      const allowedRoles = ["user", "teacher", "admin"];
+
+      if (!allowedRoles.includes(req.query.role)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid role",
+        });
+      }
+
+      filter.role = req.query.role;
+    }
+
+    // -------------------------
+    // DATABASE
+    // -------------------------
+
+    const [users, totalUsers] = await Promise.all([
+      User.find(filter)
+        .select(
+          "-password -refreshTokenHash -refreshTokenExpiresAt",
+        )
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+
+      User.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    return res.status(200).json({
+      success: true,
+      message: "Users fetched successfully",
+      data: {
+        users,
+        pagination: {
+          page,
+          limit,
+          totalUsers,
+          totalPages,
+        },
+      },
     });
   }),
 );
