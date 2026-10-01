@@ -68,6 +68,66 @@ router.get(
     }
 
     // -------------------------
+    // SEARCH
+    // -------------------------
+
+    if (req.query.search) {
+      const search = req.query.search.trim();
+
+      if (search.length > 100) {
+        return res.status(400).json({
+          success: false,
+          message: "Search query is too long",
+        });
+      }
+
+      filter.$or = [
+        {
+          name: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          email: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+      ];
+    }
+
+    // -------------------------
+    // SORTING
+    // -------------------------
+
+    const sortQuery = req.query.sort || "-createdAt";
+
+    const sortField = sortQuery.startsWith("-")
+      ? sortQuery.slice(1)
+      : sortQuery;
+
+    const sortDirection = sortQuery.startsWith("-") ? -1 : 1;
+
+    const allowedSortFields = [
+      "name",
+      "email",
+      "role",
+      "createdAt",
+    ];
+
+    if (!allowedSortFields.includes(sortField)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid sort field",
+      });
+    }
+
+    const sort = {
+      [sortField]: sortDirection,
+    };
+
+    // -------------------------
     // DATABASE
     // -------------------------
 
@@ -76,7 +136,7 @@ router.get(
         .select(
           "-password -refreshTokenHash -refreshTokenExpiresAt",
         )
-        .sort({ createdAt: -1 })
+        .sort(sort)
         .skip(skip)
         .limit(limit),
 
