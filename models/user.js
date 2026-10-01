@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema(
 
     permissions: {
       type: [String],
-      default: [],
+      default: ["create_student"],
     },
 
     // ==================================================

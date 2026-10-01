@@ -83,12 +83,13 @@ const generateOtp = () => {
 };
 
 // Generate access token
-const generateAccessToken = (user) => {
+const generateAccessToken = (user, sessionId) => {
   return jwt.sign(
     {
       userId: user._id.toString(),
       role: user.role,
       tokenVersion: user.tokenVersion,
+      sessionId: sessionId.toString(),
     },
 
     env.JWT_SECRET,
@@ -908,7 +909,7 @@ router.post(
     // GENERATE TOKENS
     // ------------------------------------------------------
 
-    const accessToken = generateAccessToken(user);
+    const accessToken = generateAccessToken(user, session._id);
 
     const refreshToken = generateRefreshToken(user, session._id);
 
@@ -1138,7 +1139,7 @@ router.post(
     // GENERATE NEW TOKENS
     // ------------------------------------------------------
 
-    const newAccessToken = generateAccessToken(user);
+    const newAccessToken = generateAccessToken(user, session._id);
 
     const newRefreshToken = generateRefreshToken(user, session._id);
 
@@ -1289,6 +1290,56 @@ router.post(
       success: true,
 
       message: "Logged out from all devices successfully",
+    });
+  }),
+);
+
+// ============================================================
+// LOGOUT ALL OTHER DEVICES
+// POST /api/auth/logout-others
+// ============================================================
+
+router.post(
+  "/sessions/logout-others",
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const currentSessionId = req.sessionId;
+
+    if (!currentSessionId) {
+      return res.status(401).json({
+        success: false,
+        message: "Session information missing",
+      });
+    }
+
+    const currentSession = await Session.findOne({
+      _id: currentSessionId,
+      userId: req.user._id,
+      revokedAt: null,
+    });
+
+    if (!currentSession) {
+      return res.status(401).json({
+        success: false,
+        message: "current session is no longer active",
+      });
+    }
+
+    await Session.updateMany(
+      {
+        userId: req.user._id,
+        _id: { $ne: currentSession._id },
+        revokedAt: null,
+      },
+      {
+        $set: {
+          revokedAt: new Date(),
+        },
+      },
+    );
+    return res.status(200).json({
+      success: false,
+      message: "All other sessions revoked successfully",
     });
   }),
 );

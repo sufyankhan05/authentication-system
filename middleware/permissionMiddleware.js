@@ -7,6 +7,10 @@ const authorizePermission = (...requiredPermissions) => {
         message: "Authentication required",
       });
     }
+    //Admin bypass
+    if(req.user.role === "admin") {
+      return next();
+    }
 
     // Check Permissions
     const hasPermission = requiredPermissions.every((permission) =>

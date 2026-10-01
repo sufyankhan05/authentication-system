@@ -77,6 +77,7 @@ const protect = async (req, res, next) => {
     // ==================================================
 
     req.user = user;
+    req.sessionId = decoded.sessionId;
 
     next();
   } catch (error) {
