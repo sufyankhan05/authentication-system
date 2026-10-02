@@ -3,8 +3,9 @@ const express = require("express");
 const User = require("../models/user");
 
 const protect = require("../middleware/authMiddleware");
-
 const authorize = require("../middleware/roleMiddleware");
+
+const {getUsers} = require("../controller/userController");
 
 const authorizePermission = require("../middleware/permissionMiddleware");
 const validateObjectId = require("../utils/validateObjectId");
@@ -28,137 +29,7 @@ router.get(
   "/",
   protect,
   authorize("admin"),
-  asyncHandler(async (req, res) => {
-    // -------------------------
-    // PAGINATION
-    // -------------------------
-
-    const page = Math.max(
-      Number.parseInt(req.query.page, 10) || 1,
-      1,
-    );
-
-    const limit = Math.min(
-      Math.max(
-        Number.parseInt(req.query.limit, 10) || 10,
-        1,
-      ),
-      100,
-    );
-
-    const skip = (page - 1) * limit;
-
-    // -------------------------
-    // FILTERING
-    // -------------------------
-
-    const filter = {};
-
-    if (req.query.role) {
-      const allowedRoles = ["user", "teacher", "admin"];
-
-      if (!allowedRoles.includes(req.query.role)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid role",
-        });
-      }
-
-      filter.role = req.query.role;
-    }
-
-    // -------------------------
-    // SEARCH
-    // -------------------------
-
-    if (req.query.search) {
-      const search = req.query.search.trim();
-
-      if (search.length > 100) {
-        return res.status(400).json({
-          success: false,
-          message: "Search query is too long",
-        });
-      }
-
-      filter.$or = [
-        {
-          name: {
-            $regex: search,
-            $options: "i",
-          },
-        },
-        {
-          email: {
-            $regex: search,
-            $options: "i",
-          },
-        },
-      ];
-    }
-
-    // -------------------------
-    // SORTING
-    // -------------------------
-
-    const sortQuery = req.query.sort || "-createdAt";
-
-    const sortField = sortQuery.startsWith("-")
-      ? sortQuery.slice(1)
-      : sortQuery;
-
-    const sortDirection = sortQuery.startsWith("-") ? -1 : 1;
-
-    const allowedSortFields = [
-      "name",
-      "email",
-      "role",
-      "createdAt",
-    ];
-
-    if (!allowedSortFields.includes(sortField)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid sort field",
-      });
-    }
-
-    const sort = {
-      [sortField]: sortDirection,
-    };
-
-    // -------------------------
-    // DATABASE
-    // -------------------------
-
-    const [users, totalUsers] = await Promise.all([
-      User.find(filter)
-        .select(
-          "-password -refreshTokenHash -refreshTokenExpiresAt",
-        )
-        .sort(sort)
-        .skip(skip)
-        .limit(limit),
-
-      User.countDocuments(filter),
-    ]);
-
-    const totalPages = Math.ceil(totalUsers / limit);
-
-    return res.status(200).json({
-      success: true,
-      message: "Users fetched successfully",
-      data: {
-        users,
-        pagination: {
-          page,
-          limit,
-          totalUsers,
-          totalPages,
-        },
-      },
-    });
-  }),
+  getUsers,
 );
 
 // ==================================================
