@@ -177,6 +177,15 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // ==================================================
+    // PROFILE IMAGE FIELD
+    // ==================================================
+
+    profileImage: {
+      type: String,
+      default: null,
+    },
   },
 
   {

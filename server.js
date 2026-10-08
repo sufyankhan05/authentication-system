@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const logger = require("./utils/logger");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
@@ -14,9 +15,10 @@ const AppError = require("./utils/AppError");
 // MIDDLEWARE
 // ==================================================
 app.use(helmet());
-app.use(express.json({ limit: "10kb" }));  // it means "Don't accept request bodies larger than this size."
+app.use(express.json({ limit: "10kb" })); // it means "Don't accept request bodies larger than this size."
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const corsOptions = {
   origin: env.FRONTEND_URL,
@@ -33,13 +35,9 @@ const authRoutes = require("./routes/authRoutes");
 
 const userRoutes = require("./routes/userRoutes");
 
-
 app.use("/api/auth", authRoutes);
 
 app.use("/api/users", userRoutes);
-
-
-
 
 // ==================================================
 // HOME
@@ -53,9 +51,12 @@ app.get("/", (req, res) => {
 });
 
 //test
-app.get("/test-async-error",asyncHandler(async (req, res)=>{
-  throw new Error("Async error is working")
-}))
+app.get(
+  "/test-async-error",
+  asyncHandler(async (req, res) => {
+    throw new Error("Async error is working");
+  }),
+);
 
 app.get(
   "/test-async-app-error",
@@ -84,7 +85,5 @@ app.use(errorMiddleware);
 const PORT = env.PORT;
 
 app.listen(PORT, () => {
-  logger.info(
-    `Server started at http://localhost:${PORT}`,
-  );
+  logger.info(`Server started at http://localhost:${PORT}`);
 });

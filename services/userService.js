@@ -1,16 +1,10 @@
 const User = require("../models/user");
-
+const AppError = require("../utils/AppError");
 const getUsers = async (query) => {
-  const page = Math.max(
-    Number.parseInt(query.page, 10) || 1,
-    1,
-  );
+  const page = Math.max(Number.parseInt(query.page, 10) || 1, 1);
 
   const limit = Math.min(
-    Math.max(
-      Number.parseInt(query.limit, 10) || 10,
-      1,
-    ),
+    Math.max(Number.parseInt(query.limit, 10) || 10, 1),
     100,
   );
 
@@ -23,9 +17,10 @@ const getUsers = async (query) => {
     const allowedRoles = ["user", "teacher", "admin"];
 
     if (!allowedRoles.includes(query.role)) {
-      const error = new Error("Invalid role");
-      error.statusCode = 400;
-      throw error;
+      // const error = new Error("Invalid role");
+      // error.statusCode = 400;
+      // throw error;
+      throw new AppError("Invalid role", 400);
     }
 
     filter.role = query.role;
@@ -36,9 +31,10 @@ const getUsers = async (query) => {
     const search = query.search.trim();
 
     if (search.length > 100) {
-      const error = new Error("Search query is too long");
-      error.statusCode = 400;
-      throw error;
+      // const error = new Error("Search query is too long");
+      // error.statusCode = 400;
+      // throw error;
+      throw new AppError("Search query is too long", 400);
     }
 
     filter.$or = [
@@ -60,23 +56,17 @@ const getUsers = async (query) => {
   // Sorting
   const sortQuery = query.sort || "-createdAt";
 
-  const sortField = sortQuery.startsWith("-")
-    ? sortQuery.slice(1)
-    : sortQuery;
+  const sortField = sortQuery.startsWith("-") ? sortQuery.slice(1) : sortQuery;
 
   const sortDirection = sortQuery.startsWith("-") ? -1 : 1;
 
-  const allowedSortFields = [
-    "name",
-    "email",
-    "role",
-    "createdAt",
-  ];
+  const allowedSortFields = ["name", "email", "role", "createdAt"];
 
   if (!allowedSortFields.includes(sortField)) {
-    const error = new Error("Invalid sort field");
-    error.statusCode = 400;
-    throw error;
+    // const error = new Error("Invalid sort field");
+    // error.statusCode = 400;
+    // throw error;
+    throw new AppError("Invalid sort field", 400);
   }
 
   const sort = {

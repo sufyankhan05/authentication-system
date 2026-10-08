@@ -5,7 +5,7 @@ const User = require("../models/user");
 const protect = require("../middleware/authMiddleware");
 const authorize = require("../middleware/roleMiddleware");
 
-const {getUsers} = require("../controller/userController");
+const { getUsers } = require("../controller/userController");
 
 const authorizePermission = require("../middleware/permissionMiddleware");
 const validateObjectId = require("../utils/validateObjectId");
@@ -20,16 +20,41 @@ const validateString = require("../utils/validateString");
 const validateEmail = require("../utils/validateEmail");
 const router = express.Router();
 
+const upload = require("../middleware/uploadMiddleware");
 // ==================================================
 // GET ALL USERS
 // ADMIN ONLY
 // ==================================================
 
-router.get(
-  "/",
+router.get("/", protect, authorize("admin"), getUsers);
+
+// ==================================================
+// POST PROFILE IMAGE
+// ==================================================
+router.post(
+  "/profile-image",
   protect,
-  authorize("admin"),
-  getUsers,
+  upload.single("profileImage"),
+  asyncHandler(async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Profile image is required",
+      });
+    }
+
+    req.user.profileImage = `/uploads/${req.file.filename}`;
+
+    await req.user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile image uploaded successfully",
+      data: {
+        profileImage: req.user.profileImage,
+      },
+    });
+  }),
 );
 
 // ==================================================
