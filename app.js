@@ -1,4 +1,6 @@
 const express = require("express");
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocument = require("./config/swagger");
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
@@ -15,16 +17,13 @@ app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
-app.use(
-  "/uploads",
-  express.static(path.join(__dirname, "uploads"))
-);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(
   cors({
     origin: env.FRONTEND_URL,
     credentials: true,
-  })
+  }),
 );
 
 // Routes
@@ -41,6 +40,12 @@ app.get("/", (req, res) => {
     message: "Authentication API is running",
   });
 });
+
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument),
+);
 
 // 404 handler — must come after routes
 app.use((req, res) => {
